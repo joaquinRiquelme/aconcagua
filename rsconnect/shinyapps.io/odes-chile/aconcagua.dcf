@@ -5,7 +5,7 @@ account: odes-chile
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 9574275
-bundleId: 7606588
+bundleId: 7648415
 url: https://odes-chile.shinyapps.io/aconcagua/
 version: 1
 asMultiple: FALSE

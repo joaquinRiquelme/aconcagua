@@ -1,3 +1,4 @@
+# Preambulo ----
 library(shiny)
 library(bslib)
 library(dplyr)
@@ -46,29 +47,41 @@ theme_odes <- bs_theme(#bs_theme(),
   code_font = font_google(parametros$font_family_code)
 )
 
-# Data prep
+# Datos ----
 data.inicial <- read.csv("Biodiversidad-Topografia.csv")
 data.inicial$Longitud <- round(data.inicial$Longitud,2)
 data.inicial$Latitud <- round(data.inicial$Latitud,2)
 biodiversidad <- tibble(data.inicial[,c("Sitio","Riqueza","Shannon","Simpson")])
-Sitio <- tibble(data.inicial[,c("Sitio","Longitud","Latitud")])
+Sitio.b <- tibble(data.inicial[,c("Sitio","Longitud","Latitud")])
 Topografica <- tibble(data.inicial[c("Sitio","Elevación","Pendiente.Porcentaje","Exposición")])
 PRIMARY <- "#68B47D"
 biodiversidad <- biodiversidad %>%
-  left_join(Sitio) %>%
+  left_join(Sitio.b) %>%
   left_join(Topografica)
 
-print(biodiversidad)
-print(summary(biodiversidad))
+# print(biodiversidad)
+# print(summary(biodiversidad))
 plot(biodiversidad[,c("Riqueza","Shannon","Simpson","Elevación","Pendiente.Porcentaje","Exposición")])
 
 
 load("sensores.RData")
 names(sensores)
-sensores <- full_join(biodiversidad, sensores, by="Sitio")
-sensores$Latitud <- sensores$Latitud.x
-sensores$Longitud <- sensores$Longitud.x
-biodiversidad <- sensores
+sensores <- sensores %>% group_by(Categoria, Fecha, Sitio, Latitud,Longitud) %>% 
+  summarise(Temp.aire.15 = mean(Temp.aire.15, na.rm = T),
+            Temp.suelo.8 = mean(Temp.suelo.8, na.rm = T),
+            Humedad.suelo = mean(Humedad.suelo, na.rm = T))
+
+sensores.dia <- sensores %>% group_by(Categoria, Fecha) %>% 
+  summarise(Temp.aire.15 = mean(Temp.aire.15, na.rm = T),
+            Temp.suelo.8 = mean(Temp.suelo.8, na.rm = T),
+            Humedad.suelo = mean(Humedad.suelo, na.rm = T))
+summary(sensores.dia)
+
+# sensores <- full_join(biodiversidad, sensores, by="Sitio")
+# sensores$Latitud <- sensores$Latitud.x
+# sensores$Longitud <- sensores$Longitud.x
+# sensores$Categoria <- sensores$Categoria.x
+# biodiversidad <- sensores
 
 clusterizado <- read.csv("bd_clusterizado.csv")
 head(clusterizado)
@@ -117,7 +130,8 @@ ui <-page_navbar(
   #   # actionButton("guidess", "Guide")
   # )
   accordion(
-    open = "Biodiversidad",
+    open = "Sensores",
+    # open = "Biodiversidad",
     
     ### sensores ----
   accordion_panel(
@@ -140,9 +154,9 @@ ui <-page_navbar(
       uiOutput("sitio_reset"),
       checkboxGroupInput(
         "sitio", NULL,
-        choices = sort(unique(biodiversidad$Sitio)),
+        choices = sort(unique(sensores$Sitio)),
         inline = TRUE,
-        selected = sort(unique(biodiversidad$Sitio))
+        selected = sort(unique(sensores$Sitio))
       )
     ),    
     accordion_panel(
@@ -193,32 +207,34 @@ ui <-page_navbar(
           handleLabelFormat = "0d",
           selectedColor = PRIMARY
         )
+      ),
+    #### topografia ----
+      accordion_panel(
+        "Topografía", icon = icon("mountain"),
+        input_histoslider(
+          "topografica_elevacion", "Elevación (msnm)",
+          biodiversidad$Elevación,
+          height = 150,
+          options = list(     handleLabelFormat = "0d",
+                              selectedColor = PRIMARY)
+        ),
+        input_histoslider(
+          "topografica_pendiente", "Pendiente (%)",
+          biodiversidad$Pendiente.Porcentaje, height = 150,
+          breaks=seq(0,360,30),
+          options = list( handleLabelFormat = "0d",
+                          selectedColor = PRIMARY)
+        ),
+        input_histoslider(
+          "topografica_exposición", "Exposición",
+          biodiversidad$Exposición, height = 150,
+          options = list( handleLabelFormat = "0d",
+                          selectedColor = PRIMARY)
+        )
       )
     ),
   
-    ### topografia ----
-    accordion_panel(
-      "Topografía", icon = icon("mountain"),
-      input_histoslider(
-        "topografica_elevacion", "Elevación (msnm)",
-        biodiversidad$Elevación, height = 150,
-        options = list(     handleLabelFormat = "0d",
-                            selectedColor = PRIMARY)
-      ),
-      input_histoslider(
-        "topografica_pendiente", "Pendiente (%)",
-        biodiversidad$Pendiente.Porcentaje, height = 150,
-        breaks=seq(0,45,5),
-        options = list(selectedColor = PRIMARY)
-      ),
-      input_histoslider(
-        "topografica_exposición", "Exposición",
-        biodiversidad$Exposición, height = 150,
-        breaks=seq(0,360,45),
-        options = list(selectedColor = PRIMARY)
-      )
-    ),
-    
+ 
 
     ### Socioeconomico ----
     accordion_panel(
@@ -228,7 +244,7 @@ ui <-page_navbar(
       "Tipología", icon = icon("tractor"),
       uiOutput("tipologia_reset"),
       checkboxGroupInput(
-        "categoria", NULL,
+        "categoria2", NULL,
         choices = sort(unique(sensores$Categoria)),
         inline = FALSE,
         selected = sort(unique(sensores$Categoria))
@@ -390,6 +406,15 @@ server <- function(input, output, session) {
   # biodiversidad <- reactive({
   #   biodiversidad[ is.element(biodiversidad()["Sitio"], sitio=updateSelectInput), ]
   # })
+  # observe({
+    # Obtener la selección de la entrada 1
+    # categoria.i <- unique(input$categoria)
+    # output$sensores <- subset(sensores, is.element(Categoria, categoria.i))
+    
+    # Actualizar las opciones disponibles en la entrada 2
+    # Basado en la selección de la entrada 1
+    
+  # })  
   
   # tarjetas ----
   output$tarjetas <- renderUI({
@@ -397,9 +422,14 @@ server <- function(input, output, session) {
     categoria.i <- unique(input$categoria)
     sitios.i <- unique(input$sitio)
     fechas.i <- input$fechas
+    # print(fechas.i)
     
-    sensores.i <- subset(sensores, is.element(Sitio, sitios.i) & is.element(Categoria, categoria.i))
-    sitios.i <- unique(input$sitio)
+    sensores.i <- subset(sensores, is.element(Sitio, sitios.i) & 
+                           is.element(Categoria, categoria.i) & 
+                           Fecha >= fechas.i[1] &
+                           Fecha <= fechas.i[2]
+                           )
+    
     riqueza.i <- summary(input$diversidad_riqueza)
     shannon.i <- summary(input$diversidad_shannon)
     simpson.i <- summary(input$diversidad_simpson)
@@ -407,7 +437,8 @@ server <- function(input, output, session) {
     pendiente.i <- summary(input$topografica_pendiente)
     exposicion.i <- summary(input$topografica_exposición)
     
-    biodiversidad.i <- subset(biodiversidad, is.element(Sitio, sitios.i) & 
+    biodiversidad.i <- subset(biodiversidad, 
+                              # is.element(Sitio, sitios.i) & 
                                 Riqueza>=riqueza.i["Min."] & Riqueza<=riqueza.i["Max."]& 
                                 Shannon>=shannon.i["Min."] & Shannon<=shannon.i["Max."]& 
                                 Simpson>=simpson.i["Min."] & Simpson<=simpson.i["Max."]& 
@@ -434,9 +465,8 @@ server <- function(input, output, session) {
     )
     
     n_flora <- value_box(
-      paste(
-        nrow(biodiversidad.i), "observaciones en"
-      ),
+      "Observaciones correspondientes a"
+      ,
       paste(length(unique(biodiversidad.i$Sitio)),
             "sitios"),
       showcase = bsicons::bs_icon("flower2")
@@ -458,6 +488,28 @@ server <- function(input, output, session) {
   })
   
   
+  # actualizacion de sitio en base a clase de categoria ----
+  
+  observeEvent(input$categoria,{
+    categorias.i <- unique(input$categoria)
+    # sitios.actualizados <- unique(sensores$Sitio[sensores$Categoria %in% categorias.i])
+    sitios.actualizados <- 
+      # sort(
+      unique(
+        subset(sensores, is.element(Categoria, categorias.i))$Sitio
+        
+        )
+    
+    # print(categorias.i)
+    # print(sitios.actualizados)
+    updateCheckboxGroupInput(session, "sitio", 
+                             choices = sort(unique(sensores$Sitio)),
+                             inline = TRUE,
+                             selected = sort(unique(sitios.actualizados)))
+    },
+    ignoreNULL = FALSE
+  )
+  
   # grafico sensores ----
   ## temperatura ----
   output$plot.sensores.t <- renderPlot({
@@ -466,7 +518,11 @@ server <- function(input, output, session) {
     sitios.i <- unique(input$sitio)
     fechas.i <- input$fechas
     
-    sensores.i <- subset(sensores, is.element(Sitio, sitios.i) & is.element(Categoria, categoria.i))
+    sensores.i <- subset(sensores, is.element(Sitio, sitios.i) & 
+                           is.element(Categoria, categoria.i)& 
+                           Fecha >= fechas.i[1] &
+                           Fecha <= fechas.i[2])
+    
     sensores.i <- sensores.i %>% group_by(Categoria, Fecha) %>% 
       summarise(Temp.aire.15 = mean(Temp.aire.15, na.rm = T),
                 Temp.suelo.8 = mean(Temp.suelo.8, na.rm = T),
@@ -496,7 +552,7 @@ server <- function(input, output, session) {
       scale_x_date(date_labels = "%m - %y")+
       scale_colour_manual(values=paleta.sensores)+
       # ggtitle("Temperatura del aire a 15 cm y de suelo a 8cm") +
-      ylim(summary(c(sensores$Temp.aire.15,sensores$Temp.suelo.8))[c("Min.","Max.")])
+      ylim(summary(c(sensores.dia$Temp.aire.15,sensores.dia$Temp.suelo.8))[c("Min.","Max.")])
     
   }, res = 100, height = 250)
   ## humedad ----
@@ -505,7 +561,11 @@ server <- function(input, output, session) {
     sitios.i <- unique(input$sitio)
     fechas.i <- input$fechas
     
-    sensores.i <- subset(sensores, is.element(Sitio, sitios.i) & is.element(Categoria, categoria.i))
+    sensores.i <- subset(sensores, is.element(Sitio, sitios.i) & 
+                           is.element(Categoria, categoria.i)& 
+                           Fecha >= fechas.i[1] &
+                           Fecha <= fechas.i[2])
+    
     sensores.i <- sensores.i %>% group_by(Categoria, Fecha) %>% 
       summarise(Temp.aire.15 = mean(Temp.aire.15, na.rm = T),
                 Temp.suelo.8 = mean(Temp.suelo.8, na.rm = T),
@@ -534,7 +594,7 @@ server <- function(input, output, session) {
       scale_x_date(date_labels = "%m - %y")+ 
       scale_colour_manual(values=paleta.sensores.humedad)+
       # ggtitle("Temperatura del aire a 15 cm y de suelo a 8cm") +
-      ylim(summary(c(sensores$Humedad.suelo,sensores$Humedad.suelo))[c("Min.","Max.")])
+      ylim(summary(sensores.dia$Humedad.suelo)[c("Min.","Max.")])
     
   }, res = 100, height = 250)
   
@@ -550,7 +610,8 @@ server <- function(input, output, session) {
     pendiente.i <- summary(input$topografica_pendiente)
     exposicion.i <- summary(input$topografica_exposición)
     
-    biodiversidad.i <- subset(biodiversidad, is.element(Sitio, sitios.i) & 
+    biodiversidad.i <- subset(biodiversidad, 
+                              # is.element(Sitio, sitios.i) & 
                                 Riqueza>=riqueza.i["Min."] & Riqueza<=riqueza.i["Max."]& 
                                 Shannon>=shannon.i["Min."] & Shannon<=shannon.i["Max."]& 
                                 Simpson>=simpson.i["Min."] & Simpson<=simpson.i["Max."]& 
@@ -668,7 +729,11 @@ server <- function(input, output, session) {
     fechas.i <- input$fechas
     
     
-    sensores.i <- subset(sensores, is.element(Sitio, sitios.i) & is.element(Categoria, categoria.i))
+    sensores.i <- subset(sensores, is.element(Sitio, sitios.i) & 
+                           is.element(Categoria, categoria.i)& 
+                           Fecha >= fechas.i[1] &
+                           Fecha <= fechas.i[2])
+    
     sensores.i <- sensores.i %>% group_by(Categoria, Fecha, Longitud, Latitud) %>% 
       summarise(Temp.aire.15 = mean(Temp.aire.15, na.rm = T),
                 Temp.suelo.8 = mean(Temp.suelo.8, na.rm = T),
