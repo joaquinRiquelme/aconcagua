@@ -11,6 +11,7 @@ library(htmltools)
 library(rmarkdown)
 library(leaflet)
 library(leaflet.extras)
+library(ggtern)
 
 
 parametros <- list(
@@ -32,8 +33,17 @@ paleta.odes <- c("#68B47D", "#7EC07F", "#03674E", "#04559F", "#048ABF",
                  "#A63E26", "#AB4924", "#F2A74B", "#962C0C", "#F2EDD0",
                  "#9A692E", "#49A671", "#E8AF47", "#048ABF", "#F7ECC9")
 
-paleta.sensores <- c("#9A692E","#F2A74B","#04559F", "#048ABF","#03674E","#7EC07F")
-paleta.sensores.humedad <- c("#9A692E","#04559F", "#03674E")
+paleta.sensores <- c("Agricola_s/riego-aire"="#9A692E",
+                     "Agricola_s/riego-suelo"="#F2A74B",
+                     "Agricola_c/riego-aire"="#04559F", 
+                     "Agricola_c/riego-suelo"="#048ABF",
+                     "Nativo-aire"="#03674E",
+                     "Nativo-suelo"="#7EC07F")
+
+
+paleta.sensores.humedad <- c("Agricola_s/riego" = "#9A692E",
+                             "Agricola_c/riego" = "#04559F",
+                             "Nativo" = "#03674E")
 paleta.socioeconomico <- c("1"="#04559F","2"="#03674E","3"="#9A692E","4"="#A63E26")
 
 
@@ -97,7 +107,7 @@ clusterizado$seccion2 <- factor(x=clusterizado$seccion2, levels = c("Baja","Medi
 var.socio <- read.csv("variables_socioeconomico.csv")
 
 cuenca <- sf::st_read("cuencaAconcagua.shp")
-plot(cuenca)
+# plot(cuenca)
 
 # ui ----
 ui <-page_navbar(
@@ -114,34 +124,13 @@ ui <-page_navbar(
   theme = theme_odes,
   fillable = TRUE,
   fillable_mobile = TRUE,
-  ## sidebar -----
+  ## Sidebar -----
   sidebar = sidebar(
     width = 400,
-  #   selectInput("unidad", tags$small("Sitio"), opt_unidad),
-  #   selectInput("macrozona", tags$small("Macrozona"), opt_macrozona, multiple = FALSE), # selected = "zona central",
-  #   selectInput("variable", tags$small("Variable"), opt_variable, selected = "pre"),
-  #   sliderTextInput("fecha", tags$small("Fecha"), opt_fecha, selected = c(tail(opt_fecha, 12 * 10)[1], tail(opt_fecha, 1))),
-  #   
-  #   conditionalPanel(
-  #     "input.showchart",
-  #     # "hchart va en 2do contitaion panel",
-  #     highchartOutput("chart", width = "100%", height = "250px"),
-  #     div(
-  #       style="display:inline-block;float:right",
-  #       downloadButton("descargar_datos_mini", "Descargar datos", class = "btn-primary btn-sm")
-  #     )
-  #     # tags$br(),
-  #   ),
-  #   conditionalPanel(
-  #     "false",
-  #     checkboxInput("showchart", "Mostrar información histórica"),
-  #   ),
-  #   # actionButton("guidess", "Guide")
-  # )
   accordion(
-    # open = "Sensores",
+    open = "Sensores",
     # open = "Biodiversidad",
-    open = "Socioeconómico",
+    # open = "Socioeconómico",
     
     ### sensores ----
   accordion_panel(
@@ -231,7 +220,7 @@ ui <-page_navbar(
         input_histoslider(
           "topografica_pendiente", "Pendiente (%)",
           biodiversidad$Pendiente.Porcentaje, height = 150,
-          breaks=seq(0,360,30),
+          # breaks=seq(0,360,30),
           options = list( handleLabelFormat = "0d",
                           selectedColor = PRIMARY)
         ),
@@ -308,7 +297,7 @@ ui <-page_navbar(
       )
     ),
     accordion_panel(
-      "Porción destinada a hortalizas (%)", icon = icon("carrot"),
+      "% de sup. destinada a hortalizas", icon = icon("carrot"),
       uiOutput("hortaliza_reset"),
       
       sliderInput(
@@ -324,7 +313,7 @@ ui <-page_navbar(
       )
     ),
     accordion_panel(
-      "Porcentaje destinado a especies forrajeras", icon = icon("seedling"),
+      "% de sup. destinada a especies forrajeras", icon = icon("seedling"),
       uiOutput("forraje_reset"),
       
       sliderInput(
@@ -351,7 +340,7 @@ ui <-page_navbar(
       )
     ),
     accordion_panel(
-      "eficiencia", icon = icon("faucet-drip"),
+      "Índice de eficiencia de riego", icon = icon("faucet-drip"),
       uiOutput("eficiencia_reset"),
       
       input_histoslider(
@@ -367,7 +356,7 @@ ui <-page_navbar(
       )
     ),
     accordion_panel(
-      "Exposicion", icon = icon("sun-plant-wilt"),
+      "Índice de exposición a la sequía", icon = icon("sun-plant-wilt"),
       uiOutput("exposicions_reset"),
       
       input_histoslider(
@@ -383,7 +372,7 @@ ui <-page_navbar(
       )
     ),
     accordion_panel(
-      "Indice de vulnerabilidad", icon = icon("user-shield"),
+      "Índice de vulnerabilidad", icon = icon("user-shield"),
       uiOutput("ives_reset"),
       
       input_histoslider(
@@ -474,7 +463,7 @@ ui <-page_navbar(
       title = "Socioeconómico",
       full_screen=FALSE,
       nav_panel(
-        title=NULL,
+        title="Tipología",
         plotOutput("plot.socioeconomico",click = "plot_click2"))
     ))
     
@@ -682,7 +671,7 @@ server <- function(input, output, session) {
       # ggtitle("Temperatura del aire a 15 cm y de suelo a 8cm") +
       ylim(summary(c(sensores.dia$Temp.aire.15,sensores.dia$Temp.suelo.8))[c("Min.","Max.")])
     
-  }, res = 100, height = 230)
+  }, res = 90, height = 230)
   ## humedad ----
   output$plot.sensores.h <- renderPlot({
     categoria.i <- unique(input$categoria)
@@ -725,7 +714,7 @@ server <- function(input, output, session) {
       # ggtitle("Temperatura del aire a 15 cm y de suelo a 8cm") +
       ylim(summary(sensores.dia$Humedad.suelo)[c("Min.","Max.")])
     
-  }, res = 100, height = 230)
+  }, res = 90, height = 230)
   
   
   # grafico biodiversidad ----
@@ -755,7 +744,7 @@ server <- function(input, output, session) {
       theme_minimal()+
       ylab('Riqueza taxonómica (N\u00b0 spp)') +
       xlab('Elevación (msnm)')
-  }, res = 100, height = 230)
+  }, res = 90, height = 230)
   
   ## grafico Shannon ----
   output$plot.shannon <- renderPlot({
@@ -782,7 +771,7 @@ server <- function(input, output, session) {
       theme_minimal()+
       ylab('Índice de Shannon ') +
       xlab('Elevación (msnm)')
-  }, res = 100, height = 230)
+  }, res = 90, height = 230)
   
   ## grafico Simspon ----
   output$plot.simpson <- renderPlot({
@@ -809,11 +798,11 @@ server <- function(input, output, session) {
       theme_minimal()+
       ylab('Índice de Simpson') +
       xlab('Elevación (msnm)')
-  }, res = 100, height = 230)
+  }, res = 90, height = 230)
   
   # grafico socioeconomico ----
   output$plot.socioeconomico <- renderPlot({
-    
+
     seccion.i <- unique(input$seccion)
     edad.i <- summary(input$edad)
     area.i <- summary(input$superficie)
@@ -824,10 +813,10 @@ server <- function(input, output, session) {
     eficiencia.i <- summary(input$eficiencia)
     exposicions.i <- summary(input$exposicions)
     ives.i <- summary(input$ives)
-    
+
     clusterizado.i <- subset(clusterizado,
-                             is.element(seccion2, seccion.i) & 
-                               edad >= edad.i["Min."] & edad <= edad.i["Max."] & 
+                             is.element(seccion2, seccion.i) &
+                               edad >= edad.i["Min."] & edad <= edad.i["Max."] &
                                area_total >= area.i["Min."] & area_total <= area.i["Max."] &
                                frut_share >= fruta.i["Min."]/100 & frut_share <= fruta.i["Max."]/100 &
                                hort_share >= hort.i["Min."]/100 & hort_share <= hort.i["Max."]/100 &
@@ -836,26 +825,28 @@ server <- function(input, output, session) {
                                eficiencia_prom >= eficiencia.i["Min."] & eficiencia_prom <= eficiencia.i["Max."] &
                                exposure_sub_index >= exposicions.i["Min."] & exposure_sub_index <= exposicions.i["Max."] &
                                ives >= ives.i["Min."] & ives <= ives.i["Max."]
-                             
+
                                 )
     # clusterizado.i$typo <- factor(clusterizado.i$typo)
-    
+
     # clusterizado.i <- rbind(clusterizado.i, data.frame(typo=c("2"),PCA.Axis1=-10,PCA.Axis2=-10))
-    
-    
-    ggplot(clusterizado.i, aes(PCA.Axis1, PCA.Axis2)) + 
-      geom_point(data=clusterizado, color="lightgray")+  
+
+
+    ggplot(clusterizado.i, aes(PCA.Axis1, PCA.Axis2)) +
+      geom_point(data=clusterizado, color="lightgray")+
       geom_point(aes(color=factor(typo)))+
       xlim (-3, 2)+
       ylim(-3,3)+
       # ggtitle("Análisis cluster") +
       scale_colour_manual(values=paleta.socioeconomico)+
-      
+
       labs(color="Tipología")+
       theme_minimal()+
       ylab('ACP 2') +
       xlab('ACP 1')
-  }, res = 100, height = 250)
+  }, res = 90, height = 230)  
+  
+ 
   
   # Mapas ----
   ## Mapa sensores ----
