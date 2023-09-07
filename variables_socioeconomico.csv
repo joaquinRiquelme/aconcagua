@@ -1,0 +1,11 @@
+Variable,Descripcion,Tipo.de.variable,Nombre.icono,Observacion
+seccion,Seccion de la cuenca a la que pertenece el encuestado,categorica,section,
+edad,edad del encuestado,numerica,id-card,
+area_total,superficie total indicada por el agricultor en hectareas,numerica,chart-area,
+fruit_share,Proporcion de frutales en la explotación del agricultor en porcentaje,numerica,apple-whole,Valores de 0 a 1
+hort_share,Proporcion de frutales en la explotación del agricultor en porcentaje,numerica,carrot,Valores de 0 a 1
+forraj_share,Proporcion de frutales en la explotación del agricultor en porcentaje,numerica,seedling,Valores de 0 a 1
+rgo_agua_subt,Fuente de agua subterranea,categorica,arrow-up-from-ground-water,
+reficiencia_promedio,Eficiencia de riego promedio del agricultor en base a sistemas de riego indicados,numerica,faucet-drip,Valores de 0 a 1
+exposure_sub_index,Exposicion a sequia,numerica,sun-plant-wilt,Valores de 0 a 1
+ives,indice de vulnerabilidad economica a la sequia,numerica,user-shield,Valores de -1 a 1

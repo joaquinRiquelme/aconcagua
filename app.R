@@ -10,6 +10,7 @@ library(rlang)
 library(htmltools)
 library(rmarkdown)
 library(leaflet)
+library(leaflet.extras)
 
 
 parametros <- list(
@@ -33,7 +34,7 @@ paleta.odes <- c("#68B47D", "#7EC07F", "#03674E", "#04559F", "#048ABF",
 
 paleta.sensores <- c("#9A692E","#F2A74B","#04559F", "#048ABF","#03674E","#7EC07F")
 paleta.sensores.humedad <- c("#9A692E","#04559F", "#03674E")
-paleta.socioeconomico <- c("#04559F","#03674E","#9A692E","#A63E26","#F2EDD0")
+paleta.socioeconomico <- c("1"="#04559F","2"="#03674E","3"="#9A692E","4"="#A63E26")
 
 
 theme_odes <- bs_theme(#bs_theme(),
@@ -48,6 +49,7 @@ theme_odes <- bs_theme(#bs_theme(),
 )
 
 # Datos ----
+## Biodiversidad ----
 data.inicial <- read.csv("Biodiversidad-Topografia.csv")
 data.inicial$Longitud <- round(data.inicial$Longitud,2)
 data.inicial$Latitud <- round(data.inicial$Latitud,2)
@@ -64,6 +66,7 @@ biodiversidad <- biodiversidad %>%
 plot(biodiversidad[,c("Riqueza","Shannon","Simpson","Elevación","Pendiente.Porcentaje","Exposición")])
 
 
+## Sensores ----
 load("sensores.RData")
 names(sensores)
 sensores <- sensores %>% group_by(Categoria, Fecha, Sitio, Latitud,Longitud) %>% 
@@ -83,9 +86,15 @@ summary(sensores.dia)
 # sensores$Categoria <- sensores$Categoria.x
 # biodiversidad <- sensores
 
+## Socieconomico ----
 clusterizado <- read.csv("bd_clusterizado.csv")
-head(clusterizado)
-
+clusterizado$seccion2 <- NA
+clusterizado$seccion2[clusterizado$seccion=="primera_seccion"] <- "Alta"
+clusterizado$seccion2[clusterizado$seccion=="segunda_seccion"] <- "Media"
+clusterizado$seccion2[clusterizado$seccion=="tercera_seccion"] <- "Baja"
+clusterizado$seccion2 <- factor(x=clusterizado$seccion2, levels = c("Baja","Media","Alta"))
+# head(clusterizado)
+var.socio <- read.csv("variables_socioeconomico.csv")
 
 cuenca <- sf::st_read("cuencaAconcagua.shp")
 plot(cuenca)
@@ -130,8 +139,9 @@ ui <-page_navbar(
   #   # actionButton("guidess", "Guide")
   # )
   accordion(
-    open = "Sensores",
+    # open = "Sensores",
     # open = "Biodiversidad",
+    open = "Socioeconómico",
     
     ### sensores ----
   accordion_panel(
@@ -238,33 +248,158 @@ ui <-page_navbar(
 
     ### Socioeconomico ----
     accordion_panel(
-      "Socioeconomico", icon = bsicons::bs_icon("people"),
+      "Socioeconómico", icon = bsicons::bs_icon("people"),
       uiOutput("socioeconomico"),
       accordion_panel(
-      "Tipología", icon = icon("tractor"),
-      uiOutput("tipologia_reset"),
+      "Sección de la cuenca", icon = icon("section"),
+      uiOutput("seccion_reset"),
       checkboxGroupInput(
-        "categoria2", NULL,
-        choices = sort(unique(sensores$Categoria)),
-        inline = FALSE,
-        selected = sort(unique(sensores$Categoria))
+        "seccion", NULL,
+        choices = sort(unique(clusterizado$seccion2)),
+        inline = TRUE,
+        selected = sort(unique(clusterizado$seccion2))
       )
     ),
-    accordion_panel(
+   
+     accordion_panel(
       "Grupo etario", icon = icon("id-card"),
       uiOutput("getario_reset"),
       
       input_histoslider(
         "edad", NULL,
         clusterizado$edad, height = 150,
-        breaks=seq(15,100,5),
+        # breaks=seq(15,100,5),
         options = list(
           handleLabelFormat = "0d",
           selectedColor = PRIMARY
         )
       )
 
+    ),
+    
+    accordion_panel(
+      "Superficie (ha)", icon = icon("chart-area"),
+      uiOutput("superficie_reset"),
+      
+      input_histoslider(
+        "superficie", NULL,
+        clusterizado$area_total, height = 150,
+        # breaks=seq(15,100,5),
+        options = list(
+          handleLabelFormat = "0d",
+          selectedColor = PRIMARY
+        )
+      )
+      ),
+    
+      accordion_panel(
+        "% de sup. destinada a frutales", icon = icon("apple-whole"),
+        uiOutput("fruta_reset"),
+        
+      sliderInput(
+        "fruta", label = NULL,
+        min = 0, max = 100, value = c(0,100), step = 10, round = 0
+        # ,height = 150,
+        # breaks=seq(15,100,5),
+        # options = list(
+          # handleLabelFormat = "0d",
+          # selectedColor = PRIMARY
+        # )
+      )
+    ),
+    accordion_panel(
+      "Porción destinada a hortalizas (%)", icon = icon("carrot"),
+      uiOutput("hortaliza_reset"),
+      
+      sliderInput(
+      # input_histoslider(
+        "hortalizas", NULL,
+        min = 0, max = 100, value = c(0,100), step = 10, round = 0
+        # clusterizado$hort_share, height = 150,
+        # breaks=seq(15,100,5),
+        # options = list(
+          # handleLabelFormat = "0d",
+          # selectedColor = PRIMARY
+        # )
+      )
+    ),
+    accordion_panel(
+      "Porcentaje destinado a especies forrajeras", icon = icon("seedling"),
+      uiOutput("forraje_reset"),
+      
+      sliderInput(
+      # input_histoslider(
+        "forraje", NULL,
+        # clusterizado$forraj_share, height = 150,
+        min = 0, max = 100, value = c(0,100), step = 10, round = 0
+        # breaks=seq(15,100,5),
+        # options = list(
+          # handleLabelFormat = "0d",
+          # selectedColor = PRIMARY
+        # )
+      )
+    ),
+    accordion_panel(
+      "Utiliza agua de fuentes subterráneas", icon = icon("arrow-up-from-ground-water"),
+      uiOutput("rgosubt_reset"),
+      
+      checkboxGroupInput(
+        "subt", NULL,
+        choices = sort(unique(clusterizado$rgo_agua_subt)),
+        inline = TRUE,
+        selected = sort(unique(clusterizado$rgo_agua_subt))
+      )
+    ),
+    accordion_panel(
+      "eficiencia", icon = icon("faucet-drip"),
+      uiOutput("eficiencia_reset"),
+      
+      input_histoslider(
+      # sliderInput(
+        "eficiencia", NULL,
+        # min = 0, max = 100, value = 50, step = 10, round = 0
+        clusterizado$eficiencia_prom, height = 150,
+        # breaks=seq(15,100,5),
+        options = list(
+          # handleLabelFormat = "0d",
+          selectedColor = PRIMARY
+        )
+      )
+    ),
+    accordion_panel(
+      "Exposicion", icon = icon("sun-plant-wilt"),
+      uiOutput("exposicions_reset"),
+      
+      input_histoslider(
+      # sliderInput(
+        "exposicions", NULL,
+        # min = 0, max = 100, value = 50, step = 10, round = 0
+        clusterizado$exposure_sub_index, height = 150,
+        # breaks=seq(15,100,5),
+        options = list(
+          # handleLabelFormat = "N",
+          selectedColor = PRIMARY
+        )
+      )
+    ),
+    accordion_panel(
+      "Indice de vulnerabilidad", icon = icon("user-shield"),
+      uiOutput("ives_reset"),
+      
+      input_histoslider(
+        "ives", NULL,
+        # min = 0, max = 100, value = 50, step = 10, round = 0
+        clusterizado$ives, height = 150,
+        breaks=seq(-0.6,0.6,0.05),
+        options = list(
+        # handleLabelFormat = "2d",
+        selectedColor = PRIMARY
+        )
+      )
     )
+    
+    
+    
     
     )
     
@@ -290,10 +425,19 @@ ui <-page_navbar(
     
     layout_column_wrap(
       width = 1/2,
-      # class = "my-3",
+      class = "my-3",
       # HTML("<p><strong>&nbsp; &nbsp; &nbsp; &nbsp;Mapa de la cuenca del río Aconcagua</strong></p>"),
       ### Mapa ----
-      leafletOutput("mapa"),#,height = 300),
+      navset_card_pill(
+        title = "Mapas",
+        full_screen = FALSE,
+        nav_panel("Sensores",
+                  leafletOutput("mapaSensores")),
+        nav_panel("Biodiversidad",
+                  leafletOutput("mapaBiodiversidad")),
+        nav_panel("Socioeconómico",
+                  leafletOutput("mapaSocioeconomico"))
+        ),#,height = 300),
       
       ### Sensores ----
       navset_card_pill(
@@ -327,7 +471,7 @@ ui <-page_navbar(
       ),
       ### Socioeconomico ----
     navset_card_pill(
-      title = "Socioeconomico",
+      title = "Socioeconómico",
       full_screen=FALSE,
       nav_panel(
         title=NULL,
@@ -337,41 +481,6 @@ ui <-page_navbar(
     )
   ,
   
-  # bslib::nav_panel(
-  #   title = "Aplicación",
-  #   icon  = icon("map-location-dot"),
-  #   tags$head(
-  #     tags$link(href = "Isotip_gradiente_azul.png", rel = "icon"),
-  #     tags$script(src = "https://www.googletagmanager.com/gtag/js?id=G-CYG993XQRT", async = ""),
-  #     tags$script(src = "js/ga.js"),
-  #     includeCSS("www/css/styles.css"),
-  #   ),    
-  #   # fixedRow(
-  #   fluidRow(
-  #     # column(width = 8,
-  #     ### mapa ----
-  #     column(width = 5,
-             # HTML("<p><strong>&nbsp; &nbsp; &nbsp; &nbsp;Mapa de la cuenca del río Aconcagua</strong></p>"),
-  #            leafletOutput("mapa")),
-  #     ### grafico sensores ----
-  #     column(width = 5,
-  #            HTML("<p><strong>&nbsp; &nbsp; &nbsp; &nbsp;Sensores</strong></p>"),
-  #            plotOutput("plot2",click = "plot_click"))),
-  #   
-  #   fluidRow(
-  #     ### grafico biodiversidad ----
-  #       column(width = 5,
-  #            HTML("<p><strong>&nbsp; &nbsp; &nbsp; &nbsp;Biodiversidad</strong></p>"),
-  #            plotOutput("plot",click = "plot_click")),#, height = "300px", click = "plot_click"),
-  #   # )),
-  #     ### grafico socioeconomico ----
-  #   column(width = 5,
-  #          HTML("<p><strong>&nbsp; &nbsp; &nbsp; &nbsp;Análisis socioeconómico</strong></p>"),
-  #          plotOutput("plot3",click = "plot_click")),
-  #     # width="40%", height="30%")),
-  # # ))),
-  # )),
-  # 
 
   
       ### ayuda ----
@@ -447,10 +556,28 @@ server <- function(input, output, session) {
                                 Exposición>=exposicion.i["Min."] & Exposición<=exposicion.i["Max."])
     
     
+    seccion.i <- unique(input$seccion)
     edad.i <- summary(input$edad)
+    area.i <- summary(input$superficie)
+    fruta.i <- summary(input$fruta)
+    hort.i <- summary(input$hortalizas)
+    forr.i <- summary(input$forraje)
+    agusubt.i <- unique(input$subt)
+    eficiencia.i <- summary(input$eficiencia)
+    exposicions.i <- summary(input$exposicions)
+    ives.i <- summary(input$ives)
     
-    clusterizado.i <- subset(clusterizado, edad>=edad.i["Min."] & edad<=edad.i["Max."])
-                             
+    clusterizado.i <- subset(clusterizado,
+                             is.element(seccion2, seccion.i) & 
+                               edad >= edad.i["Min."] & edad <= edad.i["Max."] & 
+                               area_total >= area.i["Min."] & area_total <= area.i["Max."] &
+                               frut_share >= fruta.i["Min."]/100 & frut_share <= fruta.i["Max."]/100 &
+                               hort_share >= hort.i["Min."]/100 & hort_share <= hort.i["Max."]/100 &
+                               forraj_share >= forr.i["Min."]/100 & forraj_share <= forr.i["Max."]/100 &
+                               is.element(rgo_agua_subt, agusubt.i) &
+                               eficiencia_prom >= eficiencia.i["Min."] & eficiencia_prom <= eficiencia.i["Max."] &
+                               exposure_sub_index >= exposicions.i["Min."] & exposure_sub_index <= exposicions.i["Max."] &
+                               ives >= ives.i["Min."] & ives <= ives.i["Max."])                        
     
     n_sensores <- value_box( 
       # height = "200px",
@@ -548,13 +675,14 @@ server <- function(input, output, session) {
       theme_minimal()+
       ylab('Temperatura (\u00baC)')+
       xlab('Fecha')+
+      labs(color="Categoría")+
       # scale_x_date(date_breaks='1 month')+
       scale_x_date(date_labels = "%m - %y")+
       scale_colour_manual(values=paleta.sensores)+
       # ggtitle("Temperatura del aire a 15 cm y de suelo a 8cm") +
       ylim(summary(c(sensores.dia$Temp.aire.15,sensores.dia$Temp.suelo.8))[c("Min.","Max.")])
     
-  }, res = 100, height = 250)
+  }, res = 100, height = 230)
   ## humedad ----
   output$plot.sensores.h <- renderPlot({
     categoria.i <- unique(input$categoria)
@@ -591,12 +719,13 @@ server <- function(input, output, session) {
       theme_minimal()+
       ylab('Humedad del suelo (%)')+
       xlab('Fecha')+
+      labs(color="Categoría")+
       scale_x_date(date_labels = "%m - %y")+ 
       scale_colour_manual(values=paleta.sensores.humedad)+
       # ggtitle("Temperatura del aire a 15 cm y de suelo a 8cm") +
       ylim(summary(sensores.dia$Humedad.suelo)[c("Min.","Max.")])
     
-  }, res = 100, height = 250)
+  }, res = 100, height = 230)
   
   
   # grafico biodiversidad ----
@@ -626,7 +755,7 @@ server <- function(input, output, session) {
       theme_minimal()+
       ylab('Riqueza taxonómica (N\u00b0 spp)') +
       xlab('Elevación (msnm)')
-  }, res = 100, height = 250)
+  }, res = 100, height = 230)
   
   ## grafico Shannon ----
   output$plot.shannon <- renderPlot({
@@ -653,7 +782,7 @@ server <- function(input, output, session) {
       theme_minimal()+
       ylab('Índice de Shannon ') +
       xlab('Elevación (msnm)')
-  }, res = 100, height = 250)
+  }, res = 100, height = 230)
   
   ## grafico Simspon ----
   output$plot.simpson <- renderPlot({
@@ -680,50 +809,57 @@ server <- function(input, output, session) {
       theme_minimal()+
       ylab('Índice de Simpson') +
       xlab('Elevación (msnm)')
-  }, res = 100, height = 250)
+  }, res = 100, height = 230)
   
   # grafico socioeconomico ----
   output$plot.socioeconomico <- renderPlot({
     
+    seccion.i <- unique(input$seccion)
     edad.i <- summary(input$edad)
+    area.i <- summary(input$superficie)
+    fruta.i <- summary(input$fruta)
+    hort.i <- summary(input$hortalizas)
+    forr.i <- summary(input$forraje)
+    agusubt.i <- unique(input$subt)
+    eficiencia.i <- summary(input$eficiencia)
+    exposicions.i <- summary(input$exposicions)
+    ives.i <- summary(input$ives)
     
-    clusterizado.i <- subset(clusterizado, edad>=edad.i["Min."] & edad<=edad.i["Max."]
+    clusterizado.i <- subset(clusterizado,
+                             is.element(seccion2, seccion.i) & 
+                               edad >= edad.i["Min."] & edad <= edad.i["Max."] & 
+                               area_total >= area.i["Min."] & area_total <= area.i["Max."] &
+                               frut_share >= fruta.i["Min."]/100 & frut_share <= fruta.i["Max."]/100 &
+                               hort_share >= hort.i["Min."]/100 & hort_share <= hort.i["Max."]/100 &
+                               forraj_share >= forr.i["Min."]/100 & forraj_share <= forr.i["Max."]/100 &
+                               is.element(rgo_agua_subt, agusubt.i) &
+                               eficiencia_prom >= eficiencia.i["Min."] & eficiencia_prom <= eficiencia.i["Max."] &
+                               exposure_sub_index >= exposicions.i["Min."] & exposure_sub_index <= exposicions.i["Max."] &
+                               ives >= ives.i["Min."] & ives <= ives.i["Max."]
+                             
                                 )
     # clusterizado.i$typo <- factor(clusterizado.i$typo)
     
     # clusterizado.i <- rbind(clusterizado.i, data.frame(typo=c("2"),PCA.Axis1=-10,PCA.Axis2=-10))
     
+    
     ggplot(clusterizado.i, aes(PCA.Axis1, PCA.Axis2)) + 
-      geom_point(data=clusterizado, aes(color="gray"))+  
+      geom_point(data=clusterizado, color="lightgray")+  
       geom_point(aes(color=factor(typo)))+
       xlim (-3, 2)+
       ylim(-3,3)+
       # ggtitle("Análisis cluster") +
       scale_colour_manual(values=paleta.socioeconomico)+
+      
+      labs(color="Tipología")+
       theme_minimal()+
-      ylab('Eje y') +
-      xlab('Eje x')
+      ylab('ACP 2') +
+      xlab('ACP 1')
   }, res = 100, height = 250)
   
-  
-  # Mapa ----
-  output$mapa <-  renderLeaflet({
-    sitios.i <- unique(input$sitio)
-    riqueza.i <- summary(input$diversidad_riqueza)
-    shannon.i <- summary(input$diversidad_shannon)
-    simpson.i <- summary(input$diversidad_simpson)
-    elevacion.i <- summary(input$topografica_elevacion)
-    pendiente.i <- summary(input$topografica_pendiente)
-    exposicion.i <- summary(input$topografica_exposición)
-    
-    biodiversidad.i <- subset(biodiversidad, is.element(Sitio, sitios.i) & 
-                                Riqueza>=riqueza.i["Min."] & Riqueza<=riqueza.i["Max."]& 
-                                Shannon>=shannon.i["Min."] & Shannon<=shannon.i["Max."]& 
-                                Simpson>=simpson.i["Min."] & Simpson<=simpson.i["Max."]& 
-                                Elevación>=elevacion.i["Min."] & Elevación<=elevacion.i["Max."]& 
-                                Pendiente.Porcentaje>=pendiente.i["Min."] & Pendiente.Porcentaje<=pendiente.i["Max."]& 
-                                Exposición>=exposicion.i["Min."] & Exposición<=exposicion.i["Max."])
-    
+  # Mapas ----
+  ## Mapa sensores ----
+  output$mapaSensores <-  renderLeaflet({
     categoria.i <- unique(input$categoria)
     sitios.i <- unique(input$sitio)
     fechas.i <- input$fechas
@@ -734,20 +870,92 @@ server <- function(input, output, session) {
                            Fecha >= fechas.i[1] &
                            Fecha <= fechas.i[2])
     
-    sensores.i <- sensores.i %>% group_by(Categoria, Fecha, Longitud, Latitud) %>% 
-      summarise(Temp.aire.15 = mean(Temp.aire.15, na.rm = T),
-                Temp.suelo.8 = mean(Temp.suelo.8, na.rm = T),
-                Humedad.suelo = mean(Humedad.suelo, na.rm = T))
+    # # sensores.i <- sensores.i %>% group_by(Categoria, Fecha, Longitud, Latitud) %>% 
+    #   summarise(Temp.aire.15 = mean(Temp.aire.15, na.rm = T),
+                # Temp.suelo.8 = mean(Temp.suelo.8, na.rm = T),
+                # Humedad.suelo = mean(Humedad.suelo, na.rm = T))
     # raster.i <- 
+    
+    sensores.i <- unique(sensores.i[,c("Categoria", "Longitud", "Latitud")])
     leaflet() %>% addTiles() %>%
       # addRasterImage(raster.i, colors = pal, opacity = 0.8) %>%
       # addLegend(pal = pal, values = values(r),
                 # title = "Surface temp") %>%
     addCircles(data = sensores.i, lat = ~Latitud, lng = ~Longitud, color="red", radius=15)%>% 
-    addCircles(data = biodiversidad.i, lat = ~Latitud, lng = ~Longitud, color="black")%>% 
       addPolygons(data=cuenca, color = "#444444"#, weight = 1, smoothFactor = 0.5,
                   #opacity = 1.0, fillOpacity = 0.5
     )
+    
+    
+  })
+  
+  
+  ## Mapa biodiveridad ----
+  output$mapaBiodiversidad <-  renderLeaflet({
+    riqueza.i <- summary(input$diversidad_riqueza)
+    shannon.i <- summary(input$diversidad_shannon)
+    simpson.i <- summary(input$diversidad_simpson)
+    elevacion.i <- summary(input$topografica_elevacion)
+    pendiente.i <- summary(input$topografica_pendiente)
+    exposicion.i <- summary(input$topografica_exposición)
+    
+    biodiversidad.i <- subset(biodiversidad,
+                                Riqueza>=riqueza.i["Min."] & Riqueza<=riqueza.i["Max."]& 
+                                Shannon>=shannon.i["Min."] & Shannon<=shannon.i["Max."]& 
+                                Simpson>=simpson.i["Min."] & Simpson<=simpson.i["Max."]& 
+                                Elevación>=elevacion.i["Min."] & Elevación<=elevacion.i["Max."]& 
+                                Pendiente.Porcentaje>=pendiente.i["Min."] & Pendiente.Porcentaje<=pendiente.i["Max."]& 
+                                Exposición>=exposicion.i["Min."] & Exposición<=exposicion.i["Max."])
+    
+    # raster.i <- 
+    leaflet() %>% addTiles() %>%
+      # addRasterImage(raster.i, colors = pal, opacity = 0.8) %>%
+      # addLegend(pal = pal, values = values(r),
+      # title = "Surface temp") %>%
+      addCircles(data = biodiversidad.i, lat = ~Latitud, lng = ~Longitud, color="black")%>% 
+      addPolygons(data=cuenca, color = "#444444"#, weight = 1, smoothFactor = 0.5,
+                  #opacity = 1.0, fillOpacity = 0.5
+      )
+    
+    
+  })
+  
+  ## Mapa socieconomico ----
+  output$mapaSocioeconomico <-  renderLeaflet({
+    seccion.i <- unique(input$seccion)
+    edad.i <- summary(input$edad)
+    area.i <- summary(input$superficie)
+    fruta.i <- summary(input$fruta)
+    hort.i <- summary(input$hortalizas)
+    forr.i <- summary(input$forraje)
+    agusubt.i <- unique(input$subt)
+    eficiencia.i <- summary(input$eficiencia)
+    exposicions.i <- summary(input$exposicions)
+    ives.i <- summary(input$ives)
+    
+    clusterizado.i <- subset(clusterizado,
+                             is.element(seccion2, seccion.i) & 
+                               edad >= edad.i["Min."] & edad <= edad.i["Max."] & 
+                               area_total >= area.i["Min."] & area_total <= area.i["Max."] &
+                               frut_share >= fruta.i["Min."]/100 & frut_share <= fruta.i["Max."]/100 &
+                               hort_share >= hort.i["Min."]/100 & hort_share <= hort.i["Max."]/100 &
+                               forraj_share >= forr.i["Min."]/100 & forraj_share <= forr.i["Max."]/100 &
+                               is.element(rgo_agua_subt, agusubt.i) &
+                               eficiencia_prom >= eficiencia.i["Min."] & eficiencia_prom <= eficiencia.i["Max."] &
+                               exposure_sub_index >= exposicions.i["Min."] & exposure_sub_index <= exposicions.i["Max."] &
+                               ives >= ives.i["Min."] & ives <= ives.i["Max."])
+    
+    if(nrow(clusterizado.i)<4){clusterizado.i <- NA;
+    stop("El número de encuestados es muy bajo para generar el mapa")}else{nofiltro=1}
+        # raster.i <- 
+    leaflet() %>% addTiles() %>%
+      # addRasterImage(raster.i, colors = pal, opacity = 0.8) %>%
+      # addLegend(pal = pal, values = values(r),
+      # title = "Surface temp") %>%
+      addHeatmap(data = clusterizado.i, lat = ~location_latitude, lng = ~location_longitude, radius=10)%>% 
+      addPolygons(data=cuenca, color = "#444444"#, weight = 1, smoothFactor = 0.5,
+                  #opacity = 1.0, fillOpacity = 0.5
+      )
     
     
   })
