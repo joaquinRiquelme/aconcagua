@@ -1,0 +1,13 @@
+name: aconcagua2
+title: aconcagua2
+username: odes-chile
+account: odes-chile
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 9846051
+bundleId: 7768663
+url: https://odes-chile.shinyapps.io/aconcagua2/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: app_0.R|deploy.R

@@ -51,7 +51,6 @@ theme_odes <- bs_theme(#bs_theme(),
   version = 5,
   # bg = "#fff", fg = "#000",
   primary = "#7EC07F",
-  PRIMARY = "#7EC07F",
   secondary="#1F0E68",
   # navbar-bg = secondary,
   # parametros$color,
@@ -80,7 +79,6 @@ plot(biodiversidad[,c("Riqueza","Shannon","Simpson","Elevación","Pendiente.Porc
 ## Sensores ----
 load("sensores.RData")
 names(sensores)
-sensores$Humedad.suelo <- sensores$Humedad.suelo*100
 sensores <- sensores %>% group_by(Categoria, Fecha, Sitio, Latitud,Longitud) %>% 
   summarise(Temp.aire.15 = mean(Temp.aire.15, na.rm = T),
             Temp.suelo.8 = mean(Temp.suelo.8, na.rm = T),
@@ -113,7 +111,6 @@ cuenca <- sf::st_read("cuencaAconcagua.shp")
 
 # ui ----
 ui <-page_navbar(
-  theme = theme_odes,
   title  = tags$span(
     class = "title",
     tags$a(
@@ -124,14 +121,14 @@ ui <-page_navbar(
   ),
   id = "nav",
   lang = "es",
+  theme = theme_odes,
   fillable = TRUE,
   fillable_mobile = TRUE,
   ## Sidebar -----
   sidebar = sidebar(
     width = 400,
-  theme = theme_odes,
-    accordion(id="acordion1",
-              open = "Sensores",
+  accordion(
+    open = "Sensores",
     # open = "Biodiversidad",
     # open = "Socioeconómico",
     
@@ -171,7 +168,7 @@ ui <-page_navbar(
         start = min(sensores$Fecha, na.rm = T),#"2018-04-15",
         end =  max(sensores$Fecha, na.rm = T),#"2018-04-16",
         min = min(sensores$Fecha, na.rm = T),#"2018-04-10",
-        max = max(sensores$Fecha, na.rm = T))#"2018-04-20"),
+        max = max(sensores$Fecha, na.rm = T)),#"2018-04-20"),
       # sliderInput("fecha", "Fecha:",
       # min = min(sensores$datetime2, na.rm = T), max = max(sensores$datetime2, na.rm = T), 
       # value = seq(min(sensores$datetime2, na.rm = T), max(sensores$datetime2, na.rm = T),1)),
@@ -182,7 +179,6 @@ ui <-page_navbar(
     
     ### biodiversidad ----
     accordion_panel(
-      
       "Biodiversidad", icon = bsicons::bs_icon("flower2"),
       input_histoslider(
         "diversidad_riqueza", "Riqueza taxonómica",
@@ -401,188 +397,80 @@ ui <-page_navbar(
   ,
   ## Main Panel -----
   
-## Principal ---- 
-bslib::nav_panel(id="app1",
-  title = "Aplicación",
-  icon  = icon("map-location-dot"),
-  theme = theme_odes,
   
-  tags$head(
-    tags$link(href = "Isotip_gradiente_azul.png", rel = "icon"),
-    tags$script(src = "https://www.googletagmanager.com/gtag/js?id=G-CYG993XQRT", async = ""),
-    tags$script(src = "js/ga.js"),
-    includeCSS("www/css/styles.css")),
-  # "Delays",
-  ### Tarjetas ----
-  uiOutput("tarjetas"),
-  
-  layout_column_wrap(
-    width = 1/3,
-    class = "my-3",
-    # HTML("<p><strong>&nbsp; &nbsp; &nbsp; &nbsp;Mapa de la cuenca del río Aconcagua</strong></p>"),
-    ### Mapa ----
-    # navset_card_pill(
-      # title = "Mapas",
-      # full_screen = FALSE,
-      # nav_panel("Sensores",
-                leafletOutput("mapaSensores2"),
-      # nav_panel("Biodiversidad",
-                leafletOutput("mapaBiodiversidad2"),
-      # nav_panel("Socioeconómico",
-                leafletOutput("mapaSocioeconomico2")
-    )
-
-  ### Biodiversidad ----
-  # navset_card_pill(
-  #   title = "Biodiversidad",
-  #   full_screen = FALSE,
-  #   nav_panel(
-  #     "Riqueza taxonómica",
-  #     plotOutput("plot.riqueza",click = "plot_click1")
-  #   ),
-  #   nav_panel(
-  #     "Índice de Shannon",
-  #     plotOutput("plot.shannon",click = "plot_click2")),
-  #   nav_panel(
-  #     "Índice de Simpson",
-  #     plotOutput("plot.simpson",click = "plot_click2"))
-  # ),
-  # ### Socioeconomico ----
-  # navset_card_pill(
-  #   title = "Socioeconómico",
-  #   full_screen=FALSE,
-  #   nav_panel(
-  #     title="Tipología",
-  #     plotOutput("plot.socioeconomico",click = "plot_click2"))
-  # ))
-
-)
-  #   ,#,height = 300),
-  #   
-  #   ### Sensores ----
-  #   navset_card_pill(
-  #     title = "Sensores",
-  #     full_screen = FALSE,
-  #     nav_panel(
-  #       "Temperatura",
-  #       plotOutput("plot.sensores.t",click = "plot_clicka")
-  #     ),
-  #     nav_panel(
-  #       "Humedad",
-  #       plotOutput("plot.sensores.h",click = "plot_clicks"))
-  #   )
-  # ), 
-  # layout_column_wrap(
-  #   width = 1/2 , class = "my-3",
-  #   ### Biodiversidad ----
-  #   navset_card_pill(
-  #     title = "Biodiversidad",
-  #     full_screen = FALSE,
-  #     nav_panel(
-  #       "Riqueza taxonómica",
-  #       plotOutput("plot.riqueza",click = "plot_click1")
-  #     ),
-  #     nav_panel(
-  #       "Índice de Shannon",
-  #       plotOutput("plot.shannon",click = "plot_click2")),
-  #     nav_panel(
-  #       "Índice de Simpson",
-  #       plotOutput("plot.simpson",click = "plot_click2"))
-  #   ),
-  #   ### Socioeconomico ----
-  #   navset_card_pill(
-  #     title = "Socioeconómico",
-  #     full_screen=FALSE,
-  #     nav_panel(
-  #       title="Tipología",
-  #       plotOutput("plot.socioeconomico",click = "plot_click2"))
-  #   ))
-  
-,
-  ## Sensores ----
-bslib::nav_panel(
-    title = "Sensores",
-    icon  = icon("temperature-half"),
-    # theme = theme_odes,
+  nav_panel(
+    title = "Aplicación",
+      icon  = icon("map-location-dot"),
+    theme = theme_odes,
     
+      tags$head(
+        tags$link(href = "Isotip_gradiente_azul.png", rel = "icon"),
+        tags$script(src = "https://www.googletagmanager.com/gtag/js?id=G-CYG993XQRT", async = ""),
+        tags$script(src = "js/ga.js"),
+        includeCSS("www/css/styles.css")),
     # "Delays",
     ### Tarjetas ----
-    uiOutput("tarjeta.sensores"),
+     uiOutput("tarjetas"),
     
-    layout_column_wrap(
-      width = 1,
-      class = "my-3",
-      # HTML("<p><strong>&nbsp; &nbsp; &nbsp; &nbsp;Mapa de la cuenca del río Aconcagua</strong></p>"),
-      ### Mapa ----
-                  leafletOutput("mapaSensores")),
     layout_column_wrap(
       width = 1/2,
       class = "my-3",
-      
-          plotOutput("plot.sensores.t",click = "plot_clicka"),
-          plotOutput("plot.sensores.h",click = "plot_clicks")))
-    , 
-    
-## Biodiversidad ----
-bslib::nav_panel(
-    title = "Biodiversidad",
-    icon  = bsicons::bs_icon("flower2"),
-    # theme = theme_odes,
-    
-    # tags$head(
-      # tags$link(href = "Isotip_gradiente_azul.png", rel = "icon"),
-      # tags$script(src = "https://www.googletagmanager.com/gtag/js?id=G-CYG993XQRT", async = ""),
-      # tags$script(src = "js/ga.js"),
-      # includeCSS("www/css/styles.css")),
-    # "Delays",
-    ### Tarjetas ----
-    uiOutput("tarjetas.biodiversidad"),
-    
-    layout_column_wrap(
-      width = 1,
-      class = "my-3",
       # HTML("<p><strong>&nbsp; &nbsp; &nbsp; &nbsp;Mapa de la cuenca del río Aconcagua</strong></p>"),
       ### Mapa ----
-                  leafletOutput("mapaBiodiversidad")
-      ),#,height = 300),
-    
-      layout_column_wrap(
-      width = 1/3,
-      class = "my-3",
+      navset_card_pill(
+        title = "Mapas",
+        full_screen = FALSE,
+        nav_panel("Sensores",
+                  leafletOutput("mapaSensores")),
+        nav_panel("Biodiversidad",
+                  leafletOutput("mapaBiodiversidad")),
+        nav_panel("Socioeconómico",
+                  leafletOutput("mapaSocioeconomico"))
+        ),#,height = 300),
       
-          plotOutput("plot.riqueza",click = "plot_click1"),
-          plotOutput("plot.shannon",click = "plot_click2"),
-          plotOutput("plot.simpson",click = "plot_click2"))
+      ### Sensores ----
+      navset_card_pill(
+        title = "Sensores",
+        full_screen = FALSE,
+        nav_panel(
+          "Temperatura",
+          plotOutput("plot.sensores.t",click = "plot_clicka")
+        ),
+        nav_panel(
+          "Humedad",
+          plotOutput("plot.sensores.h",click = "plot_clicks"))
       )
-    
-  ,
-
-## Socioeconomico ---- 
-bslib::nav_panel(
-    title = "Socioeconomico",
-    icon  = bsicons::bs_icon("people"),
-    
-    # tags$head(
-      # tags$link(href = "Isotip_gradiente_azul.png", rel = "icon"),
-      # tags$script(src = "https://www.googletagmanager.com/gtag/js?id=G-CYG993XQRT", async = ""),
-      # tags$script(src = "js/ga.js"),
-      # includeCSS("www/css/styles.css")),
-    # "Delays",
-    ### Tarjetas ----
-    uiOutput("tarjetas.socioeconomico"),
-    
+      ), 
     layout_column_wrap(
-      width = 1,
-      class = "my-3",
-      # HTML("<p><strong>&nbsp; &nbsp; &nbsp; &nbsp;Mapa de la cuenca del río Aconcagua</strong></p>"),
-      ### Mapa ----
-                  leafletOutput("mapaSocioeconomico")
-      ),#,height = 300),
-      
+      width = 1/2 , class = "my-3",
+      ### Biodiversidad ----
+    navset_card_pill(
+      title = "Biodiversidad",
+      full_screen = FALSE,
+      nav_panel(
+        "Riqueza taxonómica",
+        plotOutput("plot.riqueza",click = "plot_click1")
+      ),
+      nav_panel(
+        "Índice de Shannon",
+        plotOutput("plot.shannon",click = "plot_click2")),
+      nav_panel(
+        "Índice de Simpson",
+        plotOutput("plot.simpson",click = "plot_click2"))
+      ),
       ### Socioeconomico ----
-          plotOutput("plot.socioeconomico",click = "plot_click2"))
+    navset_card_pill(
+      title = "Socioeconómico",
+      full_screen=FALSE,
+      nav_panel(
+        title="Tipología",
+        plotOutput("plot.socioeconomico",click = "plot_click2"))
+    ))
     
+    )
   ,
+  
+
   
       ### ayuda ----
   bslib::nav_panel(
@@ -715,144 +603,8 @@ server <- function(input, output, session) {
     layout_column_wrap(height = "125px", width = 1/3, n_sensores, n_flora, n_socioeconomico)
   })
   
-  ### tarjetas Sensores ---- 
-  output$tarjeta.sensores <- renderUI({
-    
-    categoria.i <- unique(input$categoria)
-    sitios.i <- unique(input$sitio)
-    fechas.i <- input$fechas
-    # print(fechas.i)
-    
-    sensores.i <- subset(sensores, is.element(Sitio, sitios.i) & 
-                           is.element(Categoria, categoria.i) & 
-                           Fecha >= fechas.i[1] &
-                           Fecha <= fechas.i[2]
-    )
-    
-    n_sensores <- value_box( 
-      # height = "200px",
-      # theme_color = "primary",
-      # "Un total de",
-      paste(nrow(sensores.i), "registros provenientes de"),
-      paste(length(unique(sensores.i$Sitio)),
-            "sensores"
-      ),
-      
-      showcase = bsicons::bs_icon("thermometer-half")
-    )
-    
-    layout_column_wrap(height = "125px", width = 1, n_sensores)
-  })
-  
-  
-  ### tarjetas biodiversidad ---- 
-  output$tarjetas.biodiversidad <- renderUI({
-    
-    
-    riqueza.i <- summary(input$diversidad_riqueza)
-    shannon.i <- summary(input$diversidad_shannon)
-    simpson.i <- summary(input$diversidad_simpson)
-    elevacion.i <- summary(input$topografica_elevacion)
-    pendiente.i <- summary(input$topografica_pendiente)
-    exposicion.i <- summary(input$topografica_exposición)
-    
-    biodiversidad.i <- subset(biodiversidad, 
-                              # is.element(Sitio, sitios.i) & 
-                              Riqueza>=riqueza.i["Min."] & Riqueza<=riqueza.i["Max."]& 
-                                Shannon>=shannon.i["Min."] & Shannon<=shannon.i["Max."]& 
-                                Simpson>=simpson.i["Min."] & Simpson<=simpson.i["Max."]& 
-                                Elevación>=elevacion.i["Min."] & Elevación<=elevacion.i["Max."]& 
-                                Pendiente.Porcentaje>=pendiente.i["Min."] & Pendiente.Porcentaje<=pendiente.i["Max."]& 
-                                Exposición>=exposicion.i["Min."] & Exposición<=exposicion.i["Max."])
-    
-    
-    n_flora <- value_box(
-      "Observaciones correspondientes a"
-      ,
-      paste(length(unique(biodiversidad.i$Sitio)),
-            "sitios"),
-      showcase = bsicons::bs_icon("flower2")
-    )
-    
-    layout_column_wrap(height = "125px", width = 1, n_flora)
-  })
-  
-  ## tarjeta socieconomico ----
-  output$tarjetas.socioeconomico <- renderUI({
-    
-    seccion.i <- unique(input$seccion)
-    edad.i <- summary(input$edad)
-    area.i <- summary(input$superficie)
-    fruta.i <- summary(input$fruta)
-    hort.i <- summary(input$hortalizas)
-    forr.i <- summary(input$forraje)
-    agusubt.i <- unique(input$subt)
-    eficiencia.i <- summary(input$eficiencia)
-    exposicions.i <- summary(input$exposicions)
-    ives.i <- summary(input$ives)
-    
-    clusterizado.i <- subset(clusterizado,
-                             is.element(seccion2, seccion.i) & 
-                               edad >= edad.i["Min."] & edad <= edad.i["Max."] & 
-                               area_total >= area.i["Min."] & area_total <= area.i["Max."] &
-                               frut_share >= fruta.i["Min."]/100 & frut_share <= fruta.i["Max."]/100 &
-                               hort_share >= hort.i["Min."]/100 & hort_share <= hort.i["Max."]/100 &
-                               forraj_share >= forr.i["Min."]/100 & forraj_share <= forr.i["Max."]/100 &
-                               is.element(rgo_agua_subt, agusubt.i) &
-                               eficiencia_prom >= eficiencia.i["Min."] & eficiencia_prom <= eficiencia.i["Max."] &
-                               exposure_sub_index >= exposicions.i["Min."] & exposure_sub_index <= exposicions.i["Max."] &
-                               ives >= ives.i["Min."] & ives <= ives.i["Max."])                        
-    
-    n_socioeconomico <- value_box(
-      "Encuesta aplicada a ",
-      paste(nrow(clusterizado.i),
-            "personas"
-      ),
-      # paste0(
-      # round(100 * sum(d$arr_delay > 0, na.rm = TRUE) / nrow(d), 1),
-      # "% of flights arrive late"
-      # ),
-      showcase = bsicons::bs_icon("people")
-    )
-    
-    layout_column_wrap(height = "125px", width = 1, n_socioeconomico)
-  })
   
   # actualizacion de sitio en base a clase de categoria ----
-  
-  observeEvent(input$nav,{
-    if(input$nav=="Aplicación"){
-      accordion_panel_close(id="acordion1", values = "Sensores", session = session)
-      accordion_panel_close(id="acordion1", values = "Biodiversidad", session = session)
-      accordion_panel_close(id="acordion1", values = "Socioeconómico", session = session)
-    }else{nada=1}
-    
-    if(input$nav=="Sensores"){
-      accordion_panel_open(id="acordion1", values = "Sensores", session = session)
-      accordion_panel_close(id="acordion1", values = "Biodiversidad", session = session)
-      accordion_panel_close(id="acordion1", values = "Socioeconómico", session = session)
-    }else{nada=1}
-    
-    if(input$nav=="Biodiversidad"){
-      accordion_panel_close(id="acordion1", values = "Sensores", session = session)
-      accordion_panel_open(id="acordion1", values = "Biodiversidad", session = session)
-      accordion_panel_close(id="acordion1", values = "Socioeconómico", session = session)
-    }else{nada=1}
-    
-    if(input$nav=="Socioeconomico"){
-      accordion_panel_close(id="acordion1", values = "Sensores", session = session)
-      accordion_panel_close(id="acordion1", values = "Biodiversidad", session = session)
-      accordion_panel_open(id="acordion1", values = "Socioeconómico", session = session)
-    }else{nada=1}
-    }
-    )
-  
-  observeEvent(input$boton1,{
-    accordion_panel_close(id="acordion1", values = "Sensores", session = session)
-    accordion_panel_close(id="acordion1", values = "Biodiversidad", session = session)
-    accordion_panel_open(id="acordion1", values = "Socioeconómico", session = session)}
-  )
-  
   
   observeEvent(input$categoria,{
     categorias.i <- unique(input$categoria)
@@ -964,9 +716,7 @@ server <- function(input, output, session) {
     
   }, res = 90, height = 230)
   
-  # output$plot.sensores.t2 <- output$plot.sensores.t
-  # output$plot.sensores.h2 <- renderPlot({output$plot.sensores.h})
-  # output$plot.sensores.t2 <- output$plot.sensores.t
+  
   # grafico biodiversidad ----
   ## grafico riqueza taxonomica ----
   output$plot.riqueza <- renderPlot({
@@ -1130,36 +880,6 @@ server <- function(input, output, session) {
     
   })
   
-  output$mapaSensores2 <-  renderLeaflet({
-    categoria.i <- unique(input$categoria)
-    sitios.i <- unique(input$sitio)
-    fechas.i <- input$fechas
-    
-    
-    sensores.i <- subset(sensores, is.element(Sitio, sitios.i) & 
-                           is.element(Categoria, categoria.i)& 
-                           Fecha >= fechas.i[1] &
-                           Fecha <= fechas.i[2])
-    
-    # # sensores.i <- sensores.i %>% group_by(Categoria, Fecha, Longitud, Latitud) %>% 
-    #   summarise(Temp.aire.15 = mean(Temp.aire.15, na.rm = T),
-    # Temp.suelo.8 = mean(Temp.suelo.8, na.rm = T),
-    # Humedad.suelo = mean(Humedad.suelo, na.rm = T))
-    # raster.i <- 
-    
-    sensores.i <- unique(sensores.i[,c("Categoria", "Longitud", "Latitud")])
-    leaflet() %>% addTiles() %>%
-      # addRasterImage(raster.i, colors = pal, opacity = 0.8) %>%
-      # addLegend(pal = pal, values = values(r),
-      # title = "Surface temp") %>%
-      addCircles(data = sensores.i, lat = ~Latitud, lng = ~Longitud, color="red", radius=15)%>% 
-      addPolygons(data=cuenca, color = "#444444"#, weight = 1, smoothFactor = 0.5,
-                  #opacity = 1.0, fillOpacity = 0.5
-      )
-    
-    
-  })
-  
   
   ## Mapa biodiveridad ----
   output$mapaBiodiversidad <-  renderLeaflet({
@@ -1191,34 +911,6 @@ server <- function(input, output, session) {
     
   })
   
-  output$mapaBiodiversidad2 <-  renderLeaflet({
-    riqueza.i <- summary(input$diversidad_riqueza)
-    shannon.i <- summary(input$diversidad_shannon)
-    simpson.i <- summary(input$diversidad_simpson)
-    elevacion.i <- summary(input$topografica_elevacion)
-    pendiente.i <- summary(input$topografica_pendiente)
-    exposicion.i <- summary(input$topografica_exposición)
-    
-    biodiversidad.i <- subset(biodiversidad,
-                              Riqueza>=riqueza.i["Min."] & Riqueza<=riqueza.i["Max."]& 
-                                Shannon>=shannon.i["Min."] & Shannon<=shannon.i["Max."]& 
-                                Simpson>=simpson.i["Min."] & Simpson<=simpson.i["Max."]& 
-                                Elevación>=elevacion.i["Min."] & Elevación<=elevacion.i["Max."]& 
-                                Pendiente.Porcentaje>=pendiente.i["Min."] & Pendiente.Porcentaje<=pendiente.i["Max."]& 
-                                Exposición>=exposicion.i["Min."] & Exposición<=exposicion.i["Max."])
-    
-    # raster.i <- 
-    leaflet() %>% addTiles() %>%
-      # addRasterImage(raster.i, colors = pal, opacity = 0.8) %>%
-      # addLegend(pal = pal, values = values(r),
-      # title = "Surface temp") %>%
-      addCircles(data = biodiversidad.i, lat = ~Latitud, lng = ~Longitud, color="black")%>% 
-      addPolygons(data=cuenca, color = "#444444"#, weight = 1, smoothFactor = 0.5,
-                  #opacity = 1.0, fillOpacity = 0.5
-      )
-    
-    
-  })
   ## Mapa socieconomico ----
   output$mapaSocioeconomico <-  renderLeaflet({
     seccion.i <- unique(input$seccion)
@@ -1259,46 +951,7 @@ server <- function(input, output, session) {
     
   })
   
-  output$mapaSocioeconomico2 <-  renderLeaflet({
-    seccion.i <- unique(input$seccion)
-    edad.i <- summary(input$edad)
-    area.i <- summary(input$superficie)
-    fruta.i <- summary(input$fruta)
-    hort.i <- summary(input$hortalizas)
-    forr.i <- summary(input$forraje)
-    agusubt.i <- unique(input$subt)
-    eficiencia.i <- summary(input$eficiencia)
-    exposicions.i <- summary(input$exposicions)
-    ives.i <- summary(input$ives)
-    
-    clusterizado.i <- subset(clusterizado,
-                             is.element(seccion2, seccion.i) & 
-                               edad >= edad.i["Min."] & edad <= edad.i["Max."] & 
-                               area_total >= area.i["Min."] & area_total <= area.i["Max."] &
-                               frut_share >= fruta.i["Min."]/100 & frut_share <= fruta.i["Max."]/100 &
-                               hort_share >= hort.i["Min."]/100 & hort_share <= hort.i["Max."]/100 &
-                               forraj_share >= forr.i["Min."]/100 & forraj_share <= forr.i["Max."]/100 &
-                               is.element(rgo_agua_subt, agusubt.i) &
-                               eficiencia_prom >= eficiencia.i["Min."] & eficiencia_prom <= eficiencia.i["Max."] &
-                               exposure_sub_index >= exposicions.i["Min."] & exposure_sub_index <= exposicions.i["Max."] &
-                               ives >= ives.i["Min."] & ives <= ives.i["Max."])
-    
-    if(nrow(clusterizado.i)<4){clusterizado.i <- NA;
-    stop("El número de encuestados es muy bajo para generar el mapa")}else{nofiltro=1}
-    # raster.i <- 
-    leaflet() %>% addTiles() %>%
-      # addRasterImage(raster.i, colors = pal, opacity = 0.8) %>%
-      # addLegend(pal = pal, values = values(r),
-      # title = "Surface temp") %>%
-      addHeatmap(data = clusterizado.i, lat = ~location_latitude, lng = ~location_longitude, radius=10)%>% 
-      addPolygons(data=cuenca, color = "#444444"#, weight = 1, smoothFactor = 0.5,
-                  #opacity = 1.0, fillOpacity = 0.5
-      )
-    
-    
-  })
-  
-  
+
   output$data <- renderTable({
     # req(input$plot_click)
     nearPoints(biodiversidad[,c("Sitio","Riqueza","Shannon", "Simpson","Elevación","Pendiente.Porcentaje","Exposición")], input$plot_click)
